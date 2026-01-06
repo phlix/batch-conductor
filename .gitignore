@@ -1,4 +1,10 @@
-run/status.dat
-run/history/
-data/
+# Runtime state
+/run/
+/data/
+
+# Temporary files
 *.tmp
+*.swp
+*.bak
+*~
+*.log

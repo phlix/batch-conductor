@@ -1,0 +1,96 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+use FindBin qw($Bin);
+use File::Spec;
+
+# ---------------------------------------------------------------------------
+# Base paths (independent of CWD)
+# ---------------------------------------------------------------------------
+
+my $BASE_DIR    = File::Spec->catdir($Bin, '..');
+my $RUN_DIR     = File::Spec->catdir($BASE_DIR, 'run');
+my $STATUS_FILE = File::Spec->catfile($RUN_DIR, 'status.dat');
+my $RUN_LOG     = File::Spec->catfile($RUN_DIR, 'run.log');
+
+# ---------------------------------------------------------------------------
+# Load data
+# ---------------------------------------------------------------------------
+
+my %status = load_status($STATUS_FILE);
+my %events = load_last_events($RUN_LOG);
+
+# ---------------------------------------------------------------------------
+# Output
+# ---------------------------------------------------------------------------
+
+print "BatchConductor Status\n";
+print "=====================\n\n";
+
+printf "%-20s %-8s %-20s %-30s\n",
+    "JOB", "STATE", "LAST RUN", "LAST EVENT";
+print "-" x 80, "\n";
+
+if (!%status) {
+    print "(no jobs found)\n";
+    exit 0;
+}
+
+for my $job (sort keys %status) {
+    my ($state, $ts) = @{ $status{$job} };
+    my $event = $events{$job} // '-';
+
+    printf "%-20s %-8s %-20s %-30s\n",
+        $job,
+        $state,
+        ($ts // '-'),
+        $event;
+}
+
+exit 0;
+
+# ---------------------------------------------------------------------------
+# Functions
+# ---------------------------------------------------------------------------
+
+sub load_status {
+    my ($file) = @_;
+    my %status;
+
+    return %status unless -f $file;
+
+    open my $fh, '<', $file or die "Cannot open $file: $!";
+    while (<$fh>) {
+        chomp;
+        next if /^\s*$/;
+
+        my ($job, $state, $ts) = split /\|/, $_, 3;
+        $status{$job} = [ $state, $ts ];
+    }
+    close $fh;
+
+    return %status;
+}
+
+sub load_last_events {
+    my ($file) = @_;
+    my %events;
+
+    return %events unless -f $file;
+
+    open my $fh, '<', $file or die "Cannot open $file: $!";
+    while (<$fh>) {
+        chomp;
+
+        # [timestamp] job EVENT...
+        if (/^\[[^\]]+\]\s+(\S+)\s+(.*)$/) {
+            my ($job, $event) = ($1, $2);
+            $events{$job} = $event;   # last event wins
+        }
+    }
+    close $fh;
+
+    return %events;
+}
+
