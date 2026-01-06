@@ -103,21 +103,6 @@ and must be implemented as explicit jobs.
 
 ---
 
-## Data Inventory and Versioning
-
-Maintaining historical versions of batch data is considered essential.
-
-However, BatchConductor does not implement data inventory management itself.
-
-Instead:
-- the scheduler provides ordering and context
-- jobs explicitly perform archiving and versioning
-- all data movement is visible, reviewable and version-controlled
-
-This avoids implicit behavior while preserving full operational control.
-
----
-
 ## Configuration Philosophy (JCL Replacement)
 
 BatchConductor uses a simple, declarative configuration format as a modern
@@ -131,42 +116,6 @@ Configuration is:
 No logic, conditionals or expressions are permitted in configuration files.
 
 All execution semantics are implemented in the scheduler, not in configuration.
-
----
-
-## Example Utilities
-
-BatchConductor does not ship with a runtime utility library.
-
-However, the repository contains an `examples/lib/` directory that provides
-small, focused helper scripts demonstrating common batch patterns
-(e.g. atomic file replacement).
-
-These utilities are:
-- not part of the BatchConductor runtime
-- not required by the scheduler
-- provided purely for demonstration and education
-
-Users are encouraged to copy, adapt or reimplement these utilities within their
-own job repositories as needed.
-
----
-
-## Utilities Philosophy
-
-BatchConductor intentionally avoids providing shared job utilities.
-
-In classic batch environments, data handling utilities were separate, explicit
-programs (e.g. SORT, ICEMAN, IDCAMS) and not part of the scheduler.
-
-BatchConductor follows the same principle:
-
-- The scheduler orchestrates jobs
-- Utilities perform data manipulation
-- Jobs explicitly invoke utilities
-
-Any abstraction that hides data movement or transformation logic is considered
-undesirable, as it reduces transparency and operational control.
 
 ---
 
@@ -196,4 +145,3 @@ BatchConductor explicitly does not aim to be:
 
 Any feature that would blur the separation between orchestration and execution
 is considered out of scope.
-
