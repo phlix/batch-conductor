@@ -1,43 +1,153 @@
-BatchConductor
---------------
-Job orchestration.
+# BatchConductor
 
-BatchConductor is a lightweight, file-based batch job orchestrator inspired by
-classic enterprise scheduling systems.
+BatchConductor is a minimal, explicit batch job scheduler inspired by
+classic enterprise batch systems (e.g. Control-M, JCL-based environments).
 
-It focuses on explicit control flow, dependency-aware execution and transparent
-state handling, rather than feature-rich workflow engines.
+It is intentionally simple:
+- no daemon
+- no database
+- no implicit magic
+- file-based state
+- deterministic behavior
 
-## Implementation Language
+And yes: it is written in **Perl** — because camels are cool 🐪
 
-BatchConductor is intentionally implemented in Perl.
+---
 
-Perl has a long tradition in batch processing, text handling and operational
-tooling. Its strengths align well with the explicit, file-oriented nature of
-classic batch systems.
+## Design Philosophy
 
-Additionally, camels are cool.
+BatchConductor separates concerns strictly:
+
+- **Scheduler** decides *what may run*
+- **Jobs** decide *what happens*
+- **Status** represents *batch truth*
+- **Logs** explain *scheduler decisions*
+
+There is no hidden behavior.
+If something happens, it is visible in a file.
+
+---
+
+## Repository Structure
+
+```
+bin/
+  scheduler.pl      # batch scheduler core
+  bc-status         # read-only status viewer
+
+config/
+  jobs/             # user-specific job definitions (not versioned)
+
+examples/
+  jobs/             # example job definitions
+
+run/
+  status.dat        # batch state (runtime, not versioned)
+  run.log           # scheduler event log (runtime, not versioned)
+```
+
+### Important Notes
+
+- `config/` belongs to the **user / deployment**
+- `examples/` belongs to the **project**
+- `run/` is **runtime state only** and must never be committed
+
+---
+
+## Quick Start
+
+### 1. Create job configuration directory
+
+```
+mkdir -p config/jobs
+```
+
+### 2. Copy example jobs
+
+```
+cp examples/jobs/*.conf config/jobs/
+```
+
+### 3. Run the scheduler
+
+```
+./bin/scheduler.pl
+```
+
+You should see output similar to:
+
+```
+[2026-01-06 23:34:49] running job hello
+hello world
+```
+
+---
+
+## Viewing Batch Status
+
+Use the read-only status tool:
+
+```
+./bin/bc-status
+```
+
+Example output:
+
+```
+BatchConductor Status
+=====================
+
+JOB                  STATE    LAST RUN             LAST EVENT
+--------------------------------------------------------------------------------
+hello                OK       2026-01-06 23:34:49  SKIPPED (already completed)
+```
+
+### Field Semantics
+
+- **STATE**
+  - current batch state (`OK` / `ERROR`)
+- **LAST RUN**
+  - timestamp of the last *actual execution*
+  - skipped runs do not count
+- **LAST EVENT**
+  - last scheduler decision (`OK`, `ERROR`, `SKIPPED`, …)
+
+---
+
+## Job Definitions
+
+Jobs are defined in simple `.conf` files:
+
+```ini
+[job:hello]
+cmd=echo "hello world"
+```
+
+Dependencies are expressed explicitly:
+
+```ini
+[job:merge]
+cmd=./merge.sh
+after=fetch_a,fetch_b
+```
+
+This allows Fan-In and Fan-Out patterns without special syntax.
+
+---
 
 ## What BatchConductor Is Not
 
-BatchConductor is intentionally minimal.
+- not a workflow engine
+- not a data pipeline framework
+- not a monitoring system
+- not a replacement for cron
 
-It is not:
-- a workflow engine
-- a data processing framework
-- a job DSL
-- a utility library
-- a replacement for Unix tools
+It is a **batch coordination tool**.
 
-BatchConductor focuses exclusively on orchestration and control flow.
-All data handling is expected to be implemented explicitly within jobs.
-
-## Project Status
-
-BatchConductor provides a stable and intentionally small core.
-Future work focuses on incremental improvements rather than expanding scope.
+---
 
 ## License
 
-BatchConductor is released under the MIT License.
+MIT License.
 
+See `LICENSE` for details.
